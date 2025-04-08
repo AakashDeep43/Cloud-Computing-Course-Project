@@ -1,16 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Weather App</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom, #74ebd5, #ACB6E5);
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      color: #333;
+    }
+
+    input, button {
+      padding: 12px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input {
+      width: 250px;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #388E3C;
+    }
+
+    #result, #history {
+      margin-top: 30px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    #result p, #history p {
+      margin: 8px 0;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Weather App</h1>
-    <input type="text" id="city" placeholder="Enter city" />
+  <h1>🌦 Weather App</h1>
+  <input id="city" placeholder="Enter city name" />
+  <div>
     <button onclick="getWeather()">Get Weather</button>
-    <div id="result"></div>
+    <button onclick="getHistory()">Get History</button>
   </div>
-  <script src="script.js"></script>
+
+  <div id="result"></div>
+  <div id="history"></div>
+
+  <script>
+    async function getWeather() {
+      const city = document.getElementById('city').value;
+      const apiKey = '1262b0bacba3469afbf3debf80273b8d';
+
+      const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`);
+      const data = await res.json();
+
+      if (data.cod !== 200) {
+        document.getElementById('result').innerText = 'City not found.';
+        return;
+      }
+
+      document.getElementById('result').innerHTML = `
+        <h3>${data.name}, ${data.sys.country}</h3>
+        <p>🌡 Temperature: ${data.main.temp}°C</p>
+        <p>🌤 Weather: ${data.weather[0].main} - ${data.weather[0].description}</p>
+      `;
+
+      // Save search
+      await fetch('http://localhost:3000/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city: data.name })
+      });
+    }
+
+    async function getHistory() {
+      const res = await fetch('http://localhost:3000/history');
+      const history = await res.json();
+
+      if (!Array.isArray(history)) {
+        document.getElementById('history').innerHTML = '<p>Failed to load history.</p>';
+        return;
+      }
+
+      document.getElementById('history').innerHTML = '<h3>🕑 Search History:</h3>' +
+        history.map(c => `<p>📍 ${c.name} - ${new Date(c.searchedAt).toLocaleString()}</p>`).join('');
+    }
+  </script>
 </body>
 </html>
